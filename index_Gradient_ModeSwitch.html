@@ -1,0 +1,677 @@
+<!Doctype html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="author" content="Aeshma7">
+        <meta name="description" content="This is a visual tool for story creation.">
+        <title>The Loom</title>
+        <style>
+            :root {
+            --bg-body: #f4f4f9;
+            --text-color: #333333;
+            --card-bg: #E3E6E8;
+            --card-border: #ccc;
+            --workspace-bg: linear-gradient(to top, #F4A6B3, #6F7D9C, #3E5C76, #2B3A4A);
+            --intro-bg: linear-gradient(to top, #F4A6B3, #6F7D9C, #3E5C76, #2B3A4A);
+            --helpbox-bg: rgba(255, 255, 255, 0.8);
+            }
+           
+            body.dark-mode {
+            --bg-body: #121212;
+            --text-color: #e0e0e0;
+            --card-bg: #1e1e1e;
+            --card-border: #555;
+            --workspace-bg: linear-gradient(to bottom, #1c1f26, #2b2f3b, #3a3f52, #4a5067);
+            --intro-bg: linear-gradient(to bottom, #1c1f26, #2b2f3b, #3a3f52, #4a5067);
+            --helpbox-bg: rgba(30, 30, 30, 0.8);
+            }
+
+            body.focus-mode {
+            --bg-body: #f3f4f6;               /* Sehr helles Grau statt reines Weiß */
+            --text-color: #2d2d2d;            /* Etwas weicheres Dunkelgrau */
+            --card-bg: #ffffff;               /* Weiß, aber gut lesbar auf Hellgrau */
+            --card-border: #cbd5e1;           /* Sanftes Blau-Grau */
+            --workspace-bg: #e5e7eb;          /* Leichtes Grau mit kühlem Unterton */
+            --intro-bg: #e5e7eb;              /* Gleicher sanfter Ton für Intro */
+            --helpbox-bg: rgba(255, 255, 255, 0.9);  /* Leicht transparentes Weiß */
+            }
+
+            html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100%;
+            font-family: sans-serif;
+            background: var(--bg-body);
+            color: var(--text-color);
+            }
+        
+            #introScreen {
+            position: fixed;
+            inset: 0;
+            background: var(--intro-bg);            
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            animation: fadeOut 1s ease forwards;
+            animation-delay: 6s;
+            }
+        
+            .loom-logo {
+            width: 30vw;
+            max-width: 800px;
+            height: auto;
+            opacity: 0;
+            animation: fadeIn 1s ease forwards;
+            animation-delay: 0.5s;
+            background: inherit;
+            background-clip: content-box;
+            }
+        
+            .loom-title, .loom-subtext {
+            font-family: 'Amiri', serif;
+            text-align: center;
+            opacity: 0;
+            animation: fadeIn 1s ease forwards;
+            }
+        
+            .loom-title {
+            font-weight: bold;
+            font-size: 34px;
+            margin-top: 24px;
+            color: var(--text-color);
+            animation-delay: 1.5s;
+            }
+        
+            .loom-subtext {
+            font-weight: bold;
+            font-size: 22px;
+            margin-top: 8px;
+            line-height: 1.4;
+            color: var(--text-color);
+            animation-delay: 2.5s;
+            }
+        
+            @keyframes fadeIn {
+            to { opacity: 1; }
+            }
+        
+            @keyframes fadeOut {
+            to {
+                opacity: 0;
+                pointer-events: none;
+                visibility: hidden;
+            }
+            }
+        
+            #workspace {
+            width: 100vw;
+            height: 100vh;
+            overflow: auto;
+            background: var(--workspace-bg);
+            position: relative;
+            cursor: grab;
+            }
+        
+            #canvas {
+            width: 3000px;
+            height: 3000px;
+            position: relative;
+            transform-origin: top left;
+            transform: scale(1);
+            }
+        
+            .card {
+            position: absolute;
+            width: 200px;
+            min-height: 80px;
+            padding: 10px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+            cursor: move;
+            }
+        
+            .card h4 {
+            margin: 0 0 5px;
+            font-size: 16px;
+            color: var(--text-color);
+            }
+        
+            .card textarea {
+            width: 100%;
+            min-height: 60px;
+            border: none;
+            background: transparent;
+            resize: none;
+            font: inherit;
+            font-size: 14px;
+            overflow: hidden;
+            color: var(--text-color);
+            }
+        
+            svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            }
+        
+            #helpbox {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: var(--helpbox-bg);
+            border: 1px solid var(--card-border);
+            padding: 10px;
+            font-size: 12px;            
+            border-radius: 6px;
+            }
+
+
+        </style>
+    </head>
+
+    <body>
+
+        <!-- Intro -->
+        <div id="introScreen">
+        <img src="assets/Loom-Logo.png" alt="The Loom Logo" class="loom-logo">
+        <div class="loom-title">The Loom<hr></div>
+        <div class="loom-subtext">Start with a Card.<br>Weave a Universe.</div>
+        </div>
+    
+        <!-- Workspace -->
+        <div id="workspace">
+        <svg id="connections"></svg>
+        <div id="canvas"></div>
+        </div>
+    
+        <!-- Help -->
+        <div id="helpbox">
+        <strong>Controls:</strong><br>
+        - Middle mouse: Move canvas<br>
+        - Right click: New card<br>
+        - Left click & drag: Move card<br>
+        - Mouse wheel: Zoom<br>
+        - Ctrl/Alt + wheel: Scroll<br>
+        - Delete: Remove card<br>
+        - Z: Reset view<br>
+        - Shift + click: Connect cards<br>
+        - E: Export | I: Import JSON<br>
+        - ESC: Exit editing<br>
+        - Strg + s: Manuell save<br>
+        - Strg + L: Load manuell save<br>
+        
+        </div>
+
+        <button id="modeToggle" style="position: fixed; top: 10px; right: 10px; z-index: 10000;">🌓 Toggle Mode</button>
+        
+    
+        <input type="file" id="importInput" hidden>
+    
+            <!-- Script -->
+            <script>
+                // Intro fade-out
+                window.addEventListener("load", () => {
+                    setTimeout(() => {
+                    const intro = document.getElementById("introScreen");
+                    intro.style.opacity = "0";
+                    setTimeout(() => intro.style.display = "none", 1000);
+                    }, 6000);
+                });
+            </script>
+
+                        
+        <!-- Main App -->
+        <script>
+            const workspace = document.getElementById("workspace");
+            const canvas = document.getElementById("canvas");
+            const connectionsSVG = document.getElementById("connections");
+            const importInput = document.getElementById("importInput");
+        
+            let zoomLevel = 1;
+            let isPanning = false, isDragging = false, isTextEditing = false;
+            let panStartX, panStartY, scrollStartX, scrollStartY;
+            let offsetX, offsetY, selectedCard = null, connectStart = null;
+        
+            const autoResize = textarea => {
+                textarea.style.height = 'auto';
+                textarea.style.height = textarea.scrollHeight + 'px';
+            };
+        
+            const createCard = (x, y, title = "", body = "") => {
+                const card = document.createElement("div");
+                card.className = "card";
+                card.style.left = `${x}px`;
+                card.style.top = `${y}px`;
+                card.dataset.id = crypto.randomUUID();
+        
+                const h4 = document.createElement("h4");
+                h4.contentEditable = true;
+                h4.innerText = title;
+                h4.onfocus = () => isTextEditing = true;
+                h4.onblur = () => isTextEditing = false;
+        
+                const textarea = document.createElement("textarea");
+                textarea.value = body;
+                textarea.oninput = () => autoResize(textarea);
+                textarea.onfocus = () => isTextEditing = true;
+                textarea.onblur = () => isTextEditing = false;
+        
+                card.append(h4, textarea);
+                autoResize(textarea);
+        
+                card.onmousedown = e => {
+                if (e.button !== 0) return;
+                if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT" || e.target.isContentEditable) {
+                return;
+                }
+                if (e.shiftKey) {
+                    if (!connectStart) {
+                    connectStart = card;
+                    card.style.border = "2px dashed red";
+                    } else {
+                    if (connectStart !== card) createConnection(connectStart, card);
+                    connectStart.style.border = "";
+                    connectStart = null;
+                    }
+                    return;
+                }
+                
+                isDragging = true;
+                offsetX = e.offsetX;
+                offsetY = e.offsetY;
+                selectedCard = card;
+                card.style.zIndex = 1000;
+                e.stopPropagation();
+                };
+        
+                return card;
+            };
+        
+            const updateConnections = () => {
+                connectionsSVG.querySelectorAll("line").forEach(line => {
+                const from = document.querySelector(`.card[data-id='${line.dataset.from}']`);
+                const to = document.querySelector(`.card[data-id='${line.dataset.to}']`);
+                if (!from || !to) return line.remove();
+        
+                const fromRect = from.getBoundingClientRect();
+                const toRect = to.getBoundingClientRect();
+                const wsRect = workspace.getBoundingClientRect();
+        
+                line.setAttribute("x1", fromRect.left + fromRect.width/2 - wsRect.left + workspace.scrollLeft);
+                line.setAttribute("y1", fromRect.top + fromRect.height/2 - wsRect.top + workspace.scrollTop);
+                line.setAttribute("x2", toRect.left + toRect.width/2 - wsRect.left + workspace.scrollLeft);
+                line.setAttribute("y2", toRect.top + toRect.height/2 - wsRect.top + workspace.scrollTop);
+                });
+            };
+        
+            const createConnection = (from, to) => {
+                const existing = connectionsSVG.querySelector(`line[data-from='${from.dataset.id}'][data-to='${to.dataset.id}'], line[data-from='${to.dataset.id}'][data-to='${from.dataset.id}']`);
+                if (existing) return existing.remove();
+        
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    line.setAttribute("stroke", "black");
+                line.setAttribute("stroke-width", 2);
+                line.dataset.from = from.dataset.id;
+                line.dataset.to = to.dataset.id;
+                connectionsSVG.appendChild(line);
+                updateConnections();
+            };
+        
+            const exportTheLoom = () => {
+                const cards = Array.from(canvas.querySelectorAll(".card"));
+                const lines = Array.from(connectionsSVG.querySelectorAll("line"));
+        
+                const cardData = cards.map(card => ({
+                id: card.dataset.id,
+                x: parseFloat(card.style.left) || 0,
+                y: parseFloat(card.style.top) || 0,
+                title: card.querySelector("h4")?.innerText || "",
+                text: card.querySelector("textarea")?.value || ""
+                }));
+        
+                const connections = lines.map(line => ({
+                from: line.dataset.from,
+                to: line.dataset.to
+                }));
+        
+                const json = JSON.stringify({ cards: cardData, connections }, null, 2);
+                const blob = new Blob([json], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "TheLoom.json";
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+        
+            const importTheLoom = file => {
+                const reader = new FileReader();
+                reader.onload = e => {
+                const { cards, connections } = JSON.parse(e.target.result);
+                canvas.innerHTML = "";
+                connectionsSVG.innerHTML = "";
+        
+                const idToCard = {};
+        
+                cards.forEach(({ id, x, y, title, text }) => {
+                    const card = createCard(x, y, title, text);
+                    card.dataset.id = id;
+                    canvas.appendChild(card);
+                    idToCard[id] = card;
+                });
+        
+                connections.forEach(({ from, to }) => {
+                    if (idToCard[from] && idToCard[to]) {
+                    createConnection(idToCard[from], idToCard[to]);
+                    }
+                });
+        
+                updateConnections();
+                };
+                reader.readAsText(file);
+            };
+        
+            // Event Listeners
+            document.addEventListener("keydown", e => {
+                if (isTextEditing && e.key === "Escape") {
+                document.activeElement.blur();
+                return;
+                }
+                if (isTextEditing) return;
+        
+                switch (e.key.toLowerCase()) {
+                case "e":
+                    exportTheLoom(); break;
+                case "i":
+                    importInput.click(); break;
+                case "z":
+                    workspace.scrollTo({ top: 0, left: 0, behavior: "smooth" }); break;
+                case "delete":
+                    if (selectedCard) {
+                    selectedCard.remove();
+                    selectedCard = null;
+                    updateConnections();
+                    }
+                    break;
+                case "+":
+                case "=":
+                case "Add":
+                    if (e.ctrlKey) {
+                    zoomLevel = Math.min(zoomLevel + 0.1, 4);
+                    canvas.style.transform = `scale(${zoomLevel})`;
+                    updateConnections();
+                    e.preventDefault();
+                    }
+                    break;
+                case "-":
+                    if (e.ctrlKey) {
+                    zoomLevel = Math.max(zoomLevel - 0.1, 0.2);
+                    canvas.style.transform = `scale(${zoomLevel})`;
+                    updateConnections();
+                    e.preventDefault();
+                    }
+                    break;
+                }
+            });
+        
+            importInput.addEventListener("change", e => {
+                const file = e.target.files[0];
+                if (file) importTheLoom(file);
+            });
+        
+            workspace.addEventListener("contextmenu", e => {
+                e.preventDefault();
+                const rect = canvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left + workspace.scrollLeft) / zoomLevel;
+                const y = (e.clientY - rect.top + workspace.scrollTop) / zoomLevel;
+                const card = createCard(x, y);
+                canvas.appendChild(card);
+            });
+        
+            workspace.addEventListener("mousemove", e => {
+                if (isDragging && selectedCard) {
+                const x = e.clientX - offsetX + workspace.scrollLeft;
+                const y = e.clientY - offsetY + workspace.scrollTop;
+                selectedCard.style.left = `${x / zoomLevel}px`;
+                selectedCard.style.top = `${y / zoomLevel}px`;
+                updateConnections();
+                }
+        
+                if (isPanning) {
+                const dx = (e.clientX - panStartX) * 0.5;
+                const dy = (e.clientY - panStartY) * 0.5;
+                workspace.scrollLeft = scrollStartX - dx;
+                workspace.scrollTop = scrollStartY - dy;
+                updateConnections();
+                }
+            });
+        
+            workspace.addEventListener("mouseup", () => {
+                isDragging = false;
+                isPanning = false;
+                selectedCard.style.removeProperty("z-index");
+            });
+        
+            workspace.addEventListener("mousedown", e => {
+                if (e.button === 1) {
+                isPanning = true;
+                panStartX = e.clientX;
+                panStartY = e.clientY;
+                scrollStartX = workspace.scrollLeft;
+                scrollStartY = workspace.scrollTop;
+                e.preventDefault();
+                }
+            });
+        
+            workspace.addEventListener("wheel", e => {
+                if (isTextEditing) return;
+        
+                if (e.ctrlKey) {
+                workspace.scrollTop += e.deltaY;
+                e.preventDefault();
+                } else if (e.altKey) {
+                workspace.scrollLeft += e.deltaY;
+                e.preventDefault();
+                } else {
+                const delta = -e.deltaY * 0.001;
+                zoomLevel = Math.min(Math.max(zoomLevel + delta, 0.2), 4);
+                canvas.style.transform = `scale(${zoomLevel})`;
+                updateConnections();
+                e.preventDefault();
+                }
+            }, { passive: false });
+
+            // Local Save Key
+            const STORAGE_KEY = "theLoomAutosave";
+
+            // Speichern in localStorage
+            const saveToLocal = () => {
+                const cards = Array.from(canvas.querySelectorAll(".card"));
+                const lines = Array.from(connectionsSVG.querySelectorAll("line"));
+
+                const cardData = cards.map(card => ({
+                    id: card.dataset.id,
+                    x: parseFloat(card.style.left) || 0,
+                    y: parseFloat(card.style.top) || 0,
+                    title: card.querySelector("h4")?.innerText || "",
+                    text: card.querySelector("textarea")?.value || ""
+                }));
+
+                const connections = lines.map(line => ({
+                    from: line.dataset.from,
+                    to: line.dataset.to
+                }));
+
+                const json = JSON.stringify({ cards: cardData, connections });
+                localStorage.setItem(STORAGE_KEY, json);
+            };
+
+            // Laden aus localStorage
+            const loadFromLocal = () => {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (!saved) return;
+
+                try {
+                    const { cards, connections } = JSON.parse(saved);
+                    canvas.innerHTML = "";
+                    connectionsSVG.innerHTML = "";
+
+                    const idToCard = {};
+
+                    cards.forEach(({ id, x, y, title, text }) => {
+                        const card = createCard(x, y, title, text);
+                        card.dataset.id = id;
+                        canvas.appendChild(card);
+                        idToCard[id] = card;
+                    });
+
+                    connections.forEach(({ from, to }) => {
+                        if (idToCard[from] && idToCard[to]) {
+                            createConnection(idToCard[from], idToCard[to]);
+                        }
+                    });
+
+                    updateConnections();
+                } catch (err) {
+                    console.error("Fehler beim Laden von localStorage:", err);
+                }
+            };
+
+            // Autosave alle 10 Sekunden
+            setInterval(saveToLocal, 10000);
+
+            // Zusätzliche Speicherung bei Interaktionen
+            canvas.addEventListener("input", saveToLocal);
+            canvas.addEventListener("mouseup", saveToLocal);
+
+            // Laden beim Start
+            window.addEventListener("load", loadFromLocal);
+
+            
+            const SLOT_KEY = "theLoomManualSlot";
+
+            const getCurrentState = () => {
+                const cards = Array.from(canvas.querySelectorAll(".card"));
+                const lines = Array.from(connectionsSVG.querySelectorAll("line"));
+
+                const cardData = cards.map(card => ({
+                    id: card.dataset.id,
+                    x: parseFloat(card.style.left) || 0,
+                    y: parseFloat(card.style.top) || 0,
+                    title: card.querySelector("h4")?.innerText || "",
+                    text: card.querySelector("textarea")?.value || ""
+                }));
+
+                const connections = lines.map(line => ({
+                    from: line.dataset.from,
+                    to: line.dataset.to
+                }));
+
+                return JSON.stringify({ cards: cardData, connections });
+            };
+
+            const saveToSlot = () => {
+                const json = getCurrentState();
+                localStorage.setItem(SLOT_KEY, json);
+                alert("Manuell gespeichert.");
+            };
+
+            const loadFromSlot = () => {
+                const saved = localStorage.getItem(SLOT_KEY);
+                if (!saved) {
+                    alert("Kein manueller Speicherstand gefunden.");
+                    return;
+                }
+
+                try {
+                    const { cards, connections } = JSON.parse(saved);
+                    canvas.innerHTML = "";
+                    connectionsSVG.innerHTML = "";
+
+                    const idToCard = {};
+
+                    cards.forEach(({ id, x, y, title, text }) => {
+                        const card = createCard(x, y, title, text);
+                        card.dataset.id = id;
+                        canvas.appendChild(card);
+                        idToCard[id] = card;
+                    });
+
+                    connections.forEach(({ from, to }) => {
+                        if (idToCard[from] && idToCard[to]) {
+                            createConnection(idToCard[from], idToCard[to]);
+                        }
+                    });
+
+                    updateConnections();
+                } catch (err) {
+                    console.error("Fehler beim Laden des manuellen Slots:", err);
+                    alert("Fehler beim Laden des manuellen Speicherstands.");
+                }
+            };
+
+            document.addEventListener("keydown", e => {
+                
+                // S: Speichern manueller Slot
+                if (e.key.toLowerCase() === "s" && e.ctrlKey) {
+                    e.preventDefault();
+                    saveToSlot();
+                }
+
+                // L: Laden manueller Slot
+                if (e.key.toLowerCase() === "l" && e.ctrlKey) {
+                    e.preventDefault();
+                    if (confirm("Manuellen Speicherstand laden? Nicht gespeicherte Änderungen gehen verloren.")) {
+                        loadFromSlot();
+                    }
+                }
+            });                  
+            
+
+            const modeToggle = document.getElementById("modeToggle");
+
+            // Liste der verfügbaren Themes in Reihenfolge
+            const themes = ["light", "dark", "focus"];
+
+            // Map für Icons + Labels
+            const themeLabels = {
+                light: "🌞 Light Mode",
+                dark: "🌚 Dark Mode",
+                focus: "📘 Focus Mode",
+            };
+
+            // Aktuelles Theme laden oder auf 'light' setzen
+            let currentTheme = localStorage.getItem("theme") || "light";
+            applyTheme(currentTheme);
+
+            // Theme anwenden
+            function applyTheme(theme) {
+                document.body.classList.remove("light-mode", "dark-mode", "focus-mode");
+                document.body.classList.add(`${theme}-mode`);
+                modeToggle.textContent = themeLabels[theme];
+                localStorage.setItem("theme", theme);
+            }
+
+            // Button klick – Theme durchwechseln
+            modeToggle.addEventListener("click", () => {
+                const currentIndex = themes.indexOf(currentTheme);
+                const nextIndex = (currentIndex + 1) % themes.length;
+                currentTheme = themes[nextIndex];
+                applyTheme(currentTheme);
+            });
+
+
+
+        </script>
+    </body>
+  </html>
